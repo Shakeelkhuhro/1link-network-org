@@ -4,10 +4,10 @@
   ansible.builtin.set_fact:
     change_action: "{{ 'delete' if 'delete' in (ticket_item.value.fields.description | lower) else 'create' }}"
 
-# SEARCH & NATIVE INTEGER TYPE CASTING GUARDRAILS
+# REGEX CONTIGUOUS SEARCH & NATIVE INTEGER TYPE CASTING GUARDRAILS
 - name: Extract and cast numerical attributes safely
   vars:
-    # Extracted pattern via regex contiguous search
+    # Safely search for contiguous numbers inside the description text string
     raw_vlan_match: "{{ ticket_item.value.fields.description | regex_search('[0-9]+') }}"
     # Safe native type casting executed within a task-level vars block
     sanitized_vlan_id: "{{ raw_vlan_match | int if raw_vlan_match is not none else none }}"
