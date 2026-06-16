@@ -20,3 +20,11 @@
       - "Processing Ticket ID: {{ ticket_item.value.fields.id }}"
       - "Detected Action: {{ change_action }}"
       - "Extracted Native Integer VLAN ID: {{ target_vlan_id }}"
+
+#  DATA BRIDGE
+- name: Set runtime stats to bridge variables across AWX workflow nodes
+  ansible.builtin.set_stats:
+    data:
+      change_action: "{{ change_action }}"
+      target_vlan_id: "{{ target_vlan_id | int }}"
+    per_host: false
