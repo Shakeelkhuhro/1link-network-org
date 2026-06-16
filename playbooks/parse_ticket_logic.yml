@@ -1,30 +1,21 @@
 ---
-# Check for 'delete' before 'vlan' action assignment
-- name: Determine targeted change action keyword
+- name: Sanitize Raw iTop HTML Description
   ansible.builtin.set_fact:
-    change_action: "{{ 'delete' if 'delete' in (ticket_item.value.fields.description | lower) else 'create' }}"
+    clean_description: "{{ item.value.fields.description | regex_replace('<[^>]*>', '') | regex_replace('rgba?\\([^)]*\\)', '') | lower }}"
 
-# REGEX CONTIGUOUS SEARCH & NATIVE INTEGER TYPE CASTING GUARDRAILS
-- name: Extract and cast numerical attributes safely
-  vars:
-    # Safely search for contiguous numbers inside the description text string
-    raw_vlan_match: "{{ ticket_item.value.fields.description | regex_search('[0-9]+') }}"
-    # Safe native type casting executed within a task-level vars block
-    sanitized_vlan_id: "{{ raw_vlan_match | int if raw_vlan_match is not none else none }}"
+- name: Extract Clean Change Action and VLAN Asset ID
   ansible.builtin.set_fact:
-    target_vlan_id: "{{ sanitized_vlan_id }}"
+    change_action: >-
+      {% if 'delete' in clean_description or 'shut' in clean_description or 'down' in clean_description %}
+      delete
+      {% else %}
+      create
+      {% endif %}
+    target_vlan_id: "{{ (clean_description | regex_search('vlan\\s*([0-9]+)', '\\1') | first | default('1')) | int }}"
 
-- name: Debug extracted parameters for validation
+- name: Debug Extracted Parameters for Validation
   ansible.builtin.debug:
-    msg: 
-      - "Processing Ticket ID: {{ ticket_item.value.fields.id }}"
+    msg:
+      - "Processing Ticket ID: {{ item.value.fields.id }}"
       - "Detected Action: {{ change_action }}"
       - "Extracted Native Integer VLAN ID: {{ target_vlan_id }}"
-
-#  DATA BRIDGE
-- name: Set runtime stats to bridge variables across AWX workflow nodes
-  ansible.builtin.set_stats:
-    data:
-      change_action: "{{ change_action }}"
-      target_vlan_id: "{{ target_vlan_id | int }}"
-    per_host: false
