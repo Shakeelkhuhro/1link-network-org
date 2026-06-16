@@ -1,32 +1,22 @@
 ---
-- name: 1LINK Switch Core & Compliance Engine
+- name: 1LINK Comprehensive Switch, Router & Compliance Engine
   hosts: all
   gather_facts: false
   vars:
     ansible_connection: ansible.netcommon.network_cli
     ansible_network_os: cisco.ios.ios
-    ansible_network_cli_ssh_type: paramiko   
-    
-    # PARAMIKO SSH TUNING & SYSTEM CIPHER ALIGNMENT
+    ansible_network_cli_ssh_type: paramiko
     ansible_paramiko_look_for_keys: false
     ansible_paramiko_pty: false
-    
-    # CRITICAL CRYPTO HANDSHAKE ALIGNMENT FOR THE SANDBOX ENDPOINT
-    ansible_ssh_common_args: >-
-      -o StrictHostKeyChecking=no 
-      -o UserKnownHostsFile=/dev/null 
-      -o ControlMaster=no 
-      -o ServerAliveInterval=30 
-      -o Ciphers=aes256-ctr,aes128-ctr,aes256-gcm@openssh.com 
-      -o KexAlgorithms=ecdh-sha2-nistp256,group14-sha1
-
-    # TIMEOUT EXTENSIONS FOR RETRIES
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=no'
     ansible_command_timeout: 180
     ansible_connect_timeout: 180
 
   tasks:
-    # ---  SWITCH CORE AUTOMATION ---
-    - name: Dynamically Provision VLAN Asset state on Cisco Core
+    # ==========================================
+    # 1. ADVANCED SWITCH AUTOMATION
+    # ==========================================
+    - name: Dynamically Provision VLAN Asset State
       cisco.ios.ios_vlans:
         config:
           - vlan_id: "{{ target_vlan_id }}"
@@ -35,18 +25,92 @@
         state: merged
       when: change_action == 'create'
 
-    - name: Dynamically Teardown VLAN Asset state on Cisco Core
-      cisco.ios.ios_vlans:
+    - name: Configure Access Port and Trunk Interchanges
+      cisco.ios.ios_l2_interfaces:
         config:
-          - vlan_id: "{{ target_vlan_id }}"
-        state: deleted
-      when: change_action == 'delete'
+          - name: GigabitEthernet1/0/1
+            mode: access
+            access:
+              vlan: "{{ target_vlan_id }}"
+          - name: GigabitEthernet1/0/24
+            mode: trunk
+            trunk:
+              allowed_vlans: "1,700-750"
+      when: change_action == 'create'
 
-    # ---  COMPLIANCE & HARDENING LAYER ---
-    - name: Enforce Global Security Compliance & Hardening Configurations
+    - name: Ensure Interface Operational Management Integrity
+      cisco.ios.ios_interfaces:
+        config:
+          - name: GigabitEthernet1/0/1
+            enabled: true
+            description: "Managed by 1LINK Automated Pipeline"
+
+    # ==========================================
+    # 2. ADVANCED ROUTER CORE ENGINE (IOS-XE)
+    # ==========================================
+    - name: Deploy Standard Core Access Control Lists (ACLs)
+      cisco.ios.ios_acls:
+        config:
+          - name: "1LINK_SECURITY_EDGE"
+            type: extended
+            aces:
+              - grant: deny
+                protocol: ip
+                source: any
+                destination: 10.99.99.0 0.0.0.255
+              - grant: permit
+                protocol: ip
+                source: any
+                destination: any
+        state: merged
+
+    - name: Provision OSPF Dynamic Routing Process
+      cisco.ios.ios_ospfv2:
+        config:
+          processes:
+            - pid: 100
+              areas:
+                - area_id: 0.0.0.0
+                  networks:
+                    - address: 10.0.0.0
+                      wildcard: 0.255.255.255
+        state: merged
+
+    - name: Configure Corporate BGP External Peering Engine
+      cisco.ios.ios_bgp_global:
+        config:
+          as_number: 65001
+          neighbors:
+            - address: 192.168.255.1
+              remote_as: 65100
+              description: "1LINK Primary Core Transit Peer"
+        state: merged
+
+    # ==========================================
+    # 3. GLOBAL COMPLIANCE & HARDENING
+    # ==========================================
+    - name: Enforce Infrastructure Baseline Profiles
       cisco.ios.ios_config:
         lines:
           - ntp server 10.0.0.1 prefer
           - exec-timeout 15 0
           - logging host 10.0.0.254
           - aaa new-model
+
+    # ==========================================
+    # 4. MULTI-VENDOR FIREWALL ANCHOR HOOKS
+    # ==========================================
+    # NOTE: Fortinet Policy Injection Hook Placeholder
+    # - name: Fortinet Core Policies Layer
+    #   fortinet.fortios.fortios_configuration_fact:
+    #     placeholder: "Awaiting FortiOS Edge deployment"
+
+    # NOTE: Palo Alto Security Rule Mapping Hook Placeholder
+    # - name: Palo Alto PAN-OS Policies Layer
+    #   paloaltonetworks.panos.panos_security_rule:
+    #     placeholder: "Awaiting PAN-OS Zone assignment"
+
+    # NOTE: Cisco FMC Policy Layer Hook Placeholder
+    # - name: FMC Rules Layer
+    #   cisco.fmc.fmc_configuration:
+    #     placeholder: "Awaiting Firepower Management Center rules"
