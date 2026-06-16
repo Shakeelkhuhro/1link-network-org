@@ -3,7 +3,13 @@
   hosts: cisco_hardware
   gather_facts: false
   vars:
-    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+    # SSH ENVIRONMENT & CONNECTION TIMEOUT 
+    ansible_connection: ansible.netcommon.network_cli
+    ansible_network_os: cisco.ios.ios
+    ansible_paramiko_look_for_keys: false
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=no'
+    ansible_command_timeout: 60
+    ansible_connect_timeout: 60
 
   tasks:
     # ---  SWITCH CORE AUTOMATION ---
