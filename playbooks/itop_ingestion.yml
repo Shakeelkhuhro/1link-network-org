@@ -3,8 +3,8 @@
   hosts: localhost
   gather_facts: false
   become: false
-  ansible_connection: local  
   vars:
+    ansible_connection: local  
     itop_api_url: "http://172.25.115.72/itop/webservices/rest.php?version=1.3"
 
   tasks:
