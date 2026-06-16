@@ -2,8 +2,11 @@
 - name: 1LINK Switch Core & Compliance Engine
   hosts: cisco_hardware
   gather_facts: false
+  vars:
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+
   tasks:
-    # --- SECTION 1: SWITCH CORE AUTOMATION ---
+    # ---  SWITCH CORE AUTOMATION ---
     - name: Dynamically Provision VLAN Asset state on Cisco Core
       cisco.ios.ios_vlans:
         config:
@@ -20,7 +23,7 @@
         state: deleted
       when: change_action == 'delete'
 
-    # --- SECTION 3: COMPLIANCE & HARDENING LAYER ---
+    # ---  COMPLIANCE & HARDENING LAYER ---
     - name: Enforce Global Security Compliance & Hardening Configurations
       cisco.ios.ios_config:
         lines:
