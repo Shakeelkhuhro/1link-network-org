@@ -1,0 +1,29 @@
+---
+- name: 1LINK Advanced iTop Ingestion Engine
+  hosts: localhost
+  gather_facts: false
+  vars:
+    itop_api_url: "http://172.25.115.72/itop/webservices/rest.php?version=1.3"
+
+  tasks:
+    - name: Connect to iTop and poll for resolved tickets
+      ansible.builtin.uri:
+        url: "{{ itop_api_url }}"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          auth_user: "{{ itop_user }}"
+          auth_pwd: "{{ itop_password }}"
+          json_data: >
+            {
+              "operation": "core/get",
+              "class": "UserRequest",
+              "key": "SELECT UserRequest WHERE status = 'resolved'",
+              "output_fields": "id, title, description, status"
+            }
+        status_code: 200
+      register: itop_raw_response
+
+    - name: Debug response status for verification
+      ansible.builtin.debug:
+        msg: "iTop communications established successfully."
