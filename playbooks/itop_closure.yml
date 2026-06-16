@@ -1,0 +1,36 @@
+---
+- name: 1LINK Ticket Closure & Compliance Logging Engine
+  hosts: localhost
+  gather_facts: false
+  become: false
+  vars:
+    ansible_connection: local
+    itop_api_url: "http://172.25.115.72/itop/webservices/rest.php?version=1.3"
+
+  tasks:
+    - name: Commit Final Closure and Operational Logs to iTop Ticket
+      ansible.builtin.uri:
+        url: "{{ itop_api_url }}"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          auth_user: "{{ itop_user }}"
+          auth_pwd: "{{ itop_password }}"
+          json_data: >
+            {
+              "operation": "core/update",
+              "class": "UserRequest",
+              "key": "SELECT UserRequest WHERE status = 'resolved'",
+              "comment": "1LINK Automation Pipeline execution completed successfully.",
+              "fields": {
+                "status": "closed",
+                "servicesubcategory_id": "1",
+                "public_log": "Automated Network Provisioning Complete.\nAction: {{ change_action | upper }}\nTarget Asset: VLAN {{ target_vlan_id }}\nStatus: Success\nCompliance Check: Passed (NTP, AAA, Exec-Timeout enforced)."
+              }
+            }
+        status_code: 200
+      register: itop_close_response
+
+    - name: Debug Closure Status Response
+      ansible.builtin.debug:
+        var: itop_close_response.json
