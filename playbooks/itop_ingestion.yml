@@ -6,7 +6,7 @@
     itop_api_url: "http://172.25.115.72/itop/webservices/rest.php?version=1.3"
 
   tasks:
-    - name: Connect to iTop and poll for resolved tickets
+    - name: Fetch Resolved Tickets from iTop
       ansible.builtin.uri:
         url: "{{ itop_api_url }}"
         method: POST
@@ -19,11 +19,19 @@
               "operation": "core/get",
               "class": "UserRequest",
               "key": "SELECT UserRequest WHERE status = 'resolved'",
-              "output_fields": "id, title, description, status"
+              "output_fields": "id, title, description"
             }
         status_code: 200
       register: itop_raw_response
 
-    - name: Debug response status for verification
-      ansible.builtin.debug:
-        msg: "iTop communications established successfully."
+    - name: Fail safe if communication drops or structure is invalid
+      ansible.builtin.meta: end_play
+      when: >
+        itop_raw_response.json is not defined or 
+        itop_raw_response.json.objects is not defined
+
+    - name: Process tickets and apply extraction filters
+      ansible.builtin.include_tasks: parse_ticket_logic.yml
+      loop: "{{ itop_raw_response.json.objects | dict2list }}"
+      loop_control:
+        loop_var: ticket_item
