@@ -1,0 +1,24 @@
+---
+- name: 1LINK Pre-Deployment State Validation
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Gather Active VLAN Information from Core Switch
+      cisco.ios.ios_facts:
+        gather_subset:
+          - min
+      register: switch_facts
+
+    - name: Evaluate State Integrity Guardrail (Create Action)
+      ansible.builtin.fail:
+        msg: "SAFETY ABORT: VLAN {{ target_vlan_id }} already exists on this asset. Manual review required."
+      when: 
+        - change_action == 'create'
+        - target_vlan_id | int in switch_facts.ansible_facts.net_vlans.keys() | map('int') | list
+
+    - name: Evaluate State Integrity Guardrail (Delete Action)
+      ansible.builtin.fail:
+        msg: "SAFETY ABORT: VLAN {{ target_vlan_id }} does not exist. Cannot execute teardown."
+      when: 
+        - change_action == 'delete'
+        - target_vlan_id | int not in switch_facts.ansible_facts.net_vlans.keys() | map('int') | list
