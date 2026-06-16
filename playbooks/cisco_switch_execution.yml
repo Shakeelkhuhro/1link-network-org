@@ -1,0 +1,30 @@
+---
+- name: 1LINK Switch Core & Compliance Engine
+  hosts: cisco_hardware
+  gather_facts: false
+  tasks:
+    # --- SECTION 1: SWITCH CORE AUTOMATION ---
+    - name: Dynamically Provision VLAN Asset state on Cisco Core
+      cisco.ios.ios_vlans:
+        config:
+          - vlan_id: "{{ target_vlan_id }}"
+            name: "1LINK_VLAN_{{ target_vlan_id }}"
+            state: active
+        state: merged
+      when: change_action == 'create'
+
+    - name: Dynamically Teardown VLAN Asset state on Cisco Core
+      cisco.ios.ios_vlans:
+        config:
+          - vlan_id: "{{ target_vlan_id }}"
+        state: deleted
+      when: change_action == 'delete'
+
+    # --- SECTION 3: COMPLIANCE & HARDENING LAYER ---
+    - name: Enforce Global Security Compliance & Hardening Configurations
+      cisco.ios.ios_config:
+        lines:
+          - ntp server 10.0.0.1 prefer
+          - exec-timeout 15 0
+          - logging host 10.0.0.254
+          - aaa new-model
