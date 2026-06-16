@@ -5,15 +5,24 @@
   vars:
     ansible_connection: ansible.netcommon.network_cli
     ansible_network_os: cisco.ios.ios
+    ansible_network_cli_ssh_type: paramiko   
     
-    # PARAMIKO SSH TUNING 
+    # PARAMIKO SSH TUNING & SYSTEM CIPHER ALIGNMENT
     ansible_paramiko_look_for_keys: false
-    ansible_paramiko_pty: false  
-    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=no -o ServerAliveInterval=10'
+    ansible_paramiko_pty: false
     
-    # TIMEOUT EXTENSIONS FOR SHARED INFRASTRUCTURE
-    ansible_command_timeout: 120
-    ansible_connect_timeout: 120
+    # CRITICAL CRYPTO HANDSHAKE ALIGNMENT FOR THE SANDBOX ENDPOINT
+    ansible_ssh_common_args: >-
+      -o StrictHostKeyChecking=no 
+      -o UserKnownHostsFile=/dev/null 
+      -o ControlMaster=no 
+      -o ServerAliveInterval=30 
+      -o Ciphers=aes256-ctr,aes128-ctr,aes256-gcm@openssh.com 
+      -o KexAlgorithms=ecdh-sha2-nistp256,group14-sha1
+
+    # TIMEOUT EXTENSIONS FOR RETRIES
+    ansible_command_timeout: 180
+    ansible_connect_timeout: 180
 
   tasks:
     # ---  SWITCH CORE AUTOMATION ---
