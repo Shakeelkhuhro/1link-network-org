@@ -16,8 +16,21 @@
         body:
           auth_user: "{{ itop_user }}"
           auth_pwd: "{{ itop_password }}"
-          # VALID JSON ESCAPING DURING RUNTIME
-          json_data: '{"operation": "core/update", "class": "UserRequest", "key": "SELECT UserRequest WHERE status = \"resolved\"", "comment": "1LINK Pipeline Execution Success", "fields": {"status": "closed", "servicesubcategory_id": "1", "public_log": "Automated Network Provisioning Complete.\nAction: {{ change_action | upper }}\nTarget Asset: VLAN {{ target_vlan_id }}\nStatus: Success\nCompliance Check: Passed."}}'
+          # Ansible serialize the data structure cleanly to valid JSON at runtime
+          json_data: >-
+            {{
+              {
+                "operation": "core/update",
+                "class": "UserRequest",
+                "key": "SELECT UserRequest WHERE status = 'resolved'",
+                "comment": "1LINK Pipeline Execution Success",
+                "fields": {
+                  "status": "closed",
+                  "servicesubcategory_id": "1",
+                  "public_log": "Automated Network Provisioning Complete.\nAction: " ~ (change_action | upper) ~ "\nTarget Asset: VLAN " ~ (target_vlan_id | string) ~ "\nStatus: Success\nCompliance Check: Passed."
+                }
+              } | to_json
+            }}
         status_code: 200
       register: itop_close_response
 
