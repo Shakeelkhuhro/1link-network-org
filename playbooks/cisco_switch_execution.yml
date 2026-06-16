@@ -3,13 +3,17 @@
   hosts: all
   gather_facts: false
   vars:
-    # SSH ENVIRONMENT & CONNECTION TIMEOUT 
     ansible_connection: ansible.netcommon.network_cli
     ansible_network_os: cisco.ios.ios
+    
+    # PARAMIKO SSH TUNING 
     ansible_paramiko_look_for_keys: false
-    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=no'
-    ansible_command_timeout: 60
-    ansible_connect_timeout: 60
+    ansible_paramiko_pty: false  
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=no -o ServerAliveInterval=10'
+    
+    # TIMEOUT EXTENSIONS FOR SHARED INFRASTRUCTURE
+    ansible_command_timeout: 120
+    ansible_connect_timeout: 120
 
   tasks:
     # ---  SWITCH CORE AUTOMATION ---
