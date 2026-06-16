@@ -38,6 +38,6 @@
 
     - name: Process tickets and apply extraction filters
       ansible.builtin.include_tasks: parse_ticket_logic.yml
-      loop: "{{ itop_raw_response.json.objects | dict2list }}"
+      loop: "{{ itop_raw_response.json.objects | dict2items }}"
       loop_control:
         loop_var: ticket_item
