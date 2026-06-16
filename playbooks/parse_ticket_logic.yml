@@ -5,9 +5,12 @@
 
 - name: Extract Clean Change Action and VLAN Asset ID
   ansible.builtin.set_fact:
+    # Split 'shut/down' into its own action profile separate from structural deletion
     change_action: >-
-      {% if 'delete' in clean_description or 'shut' in clean_description or 'down' in clean_description %}
+      {% if 'delete' in clean_description %}
       delete
+      {% elif 'shut' in clean_description or 'down' in clean_description %}
+      interface_toggle
       {% else %}
       create
       {% endif %}
