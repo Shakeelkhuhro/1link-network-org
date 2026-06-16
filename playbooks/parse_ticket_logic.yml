@@ -1,7 +1,7 @@
 ---
 - name: Sanitize Raw iTop HTML Description
   ansible.builtin.set_fact:
-    clean_description: "{{ item.value.fields.description | regex_replace('<[^>]*>', '') | regex_replace('rgba?\\([^)]*\\)', '') | lower }}"
+    clean_description: "{{ ticket_item.value.fields.description | regex_replace('<[^>]*>', '') | regex_replace('rgba?\\([^)]*\\)', '') | lower }}"
 
 - name: Extract Clean Change Action and VLAN Asset ID
   ansible.builtin.set_fact:
@@ -16,6 +16,6 @@
 - name: Debug Extracted Parameters for Validation
   ansible.builtin.debug:
     msg:
-      - "Processing Ticket ID: {{ item.value.fields.id }}"
+      - "Processing Ticket ID: {{ ticket_item.value.fields.id }}"
       - "Detected Action: {{ change_action }}"
       - "Extracted Native Integer VLAN ID: {{ target_vlan_id }}"
