@@ -4,7 +4,7 @@
   gather_facts: false
   become: false
   vars:
-    ansible_connection: local  
+    ansible_connection: local
     itop_api_url: "http://172.25.115.72/itop/webservices/rest.php?version=1.3"
 
   tasks:
@@ -25,6 +25,10 @@
             }
         status_code: 200
       register: itop_raw_response
+
+    - name: Debug Raw iTop Response Structure
+      ansible.builtin.debug:
+        var: itop_raw_response.json
 
     - name: Fail safe if communication drops or structure is invalid
       ansible.builtin.meta: end_play
