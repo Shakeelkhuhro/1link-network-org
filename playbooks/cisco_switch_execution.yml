@@ -6,16 +6,41 @@
     ansible_connection: ansible.netcommon.network_cli
     ansible_network_os: cisco.ios.ios
     ansible_network_cli_ssh_type: paramiko
+    
+    # PARAMIKO SSH TUNING & SYSTEM CIPHER ALIGNMENT
     ansible_paramiko_look_for_keys: false
     ansible_paramiko_pty: false
-    ansible_ssh_common_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ControlMaster=no'
+    ansible_ssh_common_args: >-
+      -o StrictHostKeyChecking=no 
+      -o UserKnownHostsFile=/dev/null 
+      -o ControlMaster=no 
+      -o ServerAliveInterval=30 
+      -o Ciphers=aes256-ctr,aes128-ctr,aes256-gcm@openssh.com 
+      -o KexAlgorithms=ecdh-sha2-nistp256,group14-sha1
+
+    # TIMEOUT EXTENSIONS FOR SHARED INFRASTRUCTURE
     ansible_command_timeout: 180
     ansible_connect_timeout: 180
 
   tasks:
-    # ==========================================
-    # 1. ADVANCED SWITCH AUTOMATION
-    # ==========================================
+    # DYNAMIC INTERFACE MANAGEMENT LAYER - Triggered via iTop
+    - name: Parse Target Interface Configuration Parameters
+      vars:
+        # Regex to look for common interface naming variants (e.g., Gi1/0/1, GigabitEthernet1/0/20)
+        discovered_interface: "{{ ticket_item.value.fields.description | regex_search('(gi|gigabitethernet|fastethernet|fa|te|tenethernet)[0-9/]+' | lower) }}"
+      ansible.builtin.set_fact:
+        target_interface: "{{ discovered_interface if discovered_interface is not none else 'GigabitEthernet1/0/1' }}"
+        interface_state: "{{ 'disabled' if 'shut' in (ticket_item.value.fields.description | lower) and 'no shut' not in (ticket_item.value.fields.description | lower) else 'enabled' }}"
+
+    - name: Dynamically Enforce Interface State & Descriptions (Shut / No-Shut / Update)
+      cisco.ios.ios_interfaces:
+        config:
+          - name: "{{ target_interface }}"
+            enabled: "{{ true if interface_state == 'enabled' else false }}"
+            description: "Managed by 1LINK Pipeline - iTop Ticket #{{ ticket_item.value.fields.id }}"
+        state: merged
+
+    #  SWITCH
     - name: Dynamically Provision VLAN Asset State
       cisco.ios.ios_vlans:
         config:
@@ -28,7 +53,7 @@
     - name: Configure Access Port and Trunk Interchanges
       cisco.ios.ios_l2_interfaces:
         config:
-          - name: GigabitEthernet1/0/1
+          - name: "{{ target_interface }}"
             mode: access
             access:
               vlan: "{{ target_vlan_id }}"
@@ -38,16 +63,16 @@
               allowed_vlans: "1,700-750"
       when: change_action == 'create'
 
-    - name: Ensure Interface Operational Management Integrity
-      cisco.ios.ios_interfaces:
+    #  ROUTER CORE ENGINE (IOS-XE)
+    - name: Configure Corporate Static Routes for Transit Redundancy
+      cisco.ios.ios_static_routes:
         config:
-          - name: GigabitEthernet1/0/1
-            enabled: true
-            description: "Managed by 1LINK Automated Pipeline"
+          - dest: 10.254.254.0/24
+            next_hops:
+              - forward_interface: GigabitEthernet1/0/24
+                address: 192.168.255.2
+        state: merged
 
-    # ==========================================
-    # 2. ADVANCED ROUTER CORE ENGINE (IOS-XE)
-    # ==========================================
     - name: Deploy Standard Core Access Control Lists (ACLs)
       cisco.ios.ios_acls:
         config:
@@ -86,9 +111,7 @@
               description: "1LINK Primary Core Transit Peer"
         state: merged
 
-    # ==========================================
-    # 3. GLOBAL COMPLIANCE & HARDENING
-    # ==========================================
+    # COMPLIANCE & HARDENING
     - name: Enforce Infrastructure Baseline Profiles
       cisco.ios.ios_config:
         lines:
@@ -97,20 +120,16 @@
           - logging host 10.0.0.254
           - aaa new-model
 
-    # ==========================================
-    # 4. MULTI-VENDOR FIREWALL ANCHOR HOOKS
-    # ==========================================
-    # NOTE: Fortinet Policy Injection Hook Placeholder
+    # MULTI-VENDOR FIREWALL ANCHOR HOOKS 
+    # =========================================================================
     # - name: Fortinet Core Policies Layer
     #   fortinet.fortios.fortios_configuration_fact:
     #     placeholder: "Awaiting FortiOS Edge deployment"
 
-    # NOTE: Palo Alto Security Rule Mapping Hook Placeholder
     # - name: Palo Alto PAN-OS Policies Layer
     #   paloaltonetworks.panos.panos_security_rule:
     #     placeholder: "Awaiting PAN-OS Zone assignment"
 
-    # NOTE: Cisco FMC Policy Layer Hook Placeholder
     # - name: FMC Rules Layer
     #   cisco.fmc.fmc_configuration:
     #     placeholder: "Awaiting Firepower Management Center rules"
