@@ -1,0 +1,22 @@
+---
+# Check for 'delete' before 'vlan' action assignment
+- name: Determine targeted change action keyword
+  ansible.builtin.set_fact:
+    change_action: "{{ 'delete' if 'delete' in (ticket_item.value.fields.description | lower) else 'create' }}"
+
+# SEARCH & NATIVE INTEGER TYPE CASTING GUARDRAILS
+- name: Extract and cast numerical attributes safely
+  vars:
+    # Extracted pattern via regex contiguous search
+    raw_vlan_match: "{{ ticket_item.value.fields.description | regex_search('[0-9]+') }}"
+    # Safe native type casting executed within a task-level vars block
+    sanitized_vlan_id: "{{ raw_vlan_match | int if raw_vlan_match is not none else none }}"
+  ansible.builtin.set_fact:
+    target_vlan_id: "{{ sanitized_vlan_id }}"
+
+- name: Debug extracted parameters for validation
+  ansible.builtin.debug:
+    msg: 
+      - "Processing Ticket ID: {{ ticket_item.value.fields.id }}"
+      - "Detected Action: {{ change_action }}"
+      - "Extracted Native Integer VLAN ID: {{ target_vlan_id }}"
