@@ -1,6 +1,6 @@
 ---
 - name: 1LINK Switch Core & Compliance Engine
-  hosts: cisco_hardware
+  hosts: all
   gather_facts: false
   vars:
     # SSH ENVIRONMENT & CONNECTION TIMEOUT 
