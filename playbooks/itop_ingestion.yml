@@ -2,7 +2,8 @@
 - name: 1LINK Advanced iTop Ingestion Engine
   hosts: localhost
   gather_facts: false
-  become: false  
+  become: false
+  ansible_connection: local  
   vars:
     itop_api_url: "http://172.25.115.72/itop/webservices/rest.php?version=1.3"
 
