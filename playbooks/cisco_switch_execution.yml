@@ -23,10 +23,11 @@
     ansible_connect_timeout: 180
 
   tasks:
-    # DYNAMIC INTERFACE MANAGEMENT LAYER - Triggered via iTop
+    # =========================================================================
+    # DYNAMIC INTERFACE MANAGEMENT LAYER (Runs across all pipeline changes)
+    # =========================================================================
     - name: Parse Target Interface Configuration Parameters
       vars:
-        # Regex to look for common interface naming variants (e.g., Gi1/0/1, GigabitEthernet1/0/20)
         discovered_interface: "{{ ticket_item.value.fields.description | regex_search('(gi|gigabitethernet|fastethernet|fa|te|tenethernet)[0-9/]+' | lower) }}"
       ansible.builtin.set_fact:
         target_interface: "{{ discovered_interface if discovered_interface is not none else 'GigabitEthernet1/0/1' }}"
@@ -40,7 +41,9 @@
             description: "Managed by 1LINK Pipeline - iTop Ticket #{{ ticket_item.value.fields.id }}"
         state: merged
 
-    #  SWITCH
+    # =========================================================================
+    # 1. SWITCH AUTOMATION LAYER (VLAN Creation / Deletion / Mapping)
+    # =========================================================================
     - name: Dynamically Provision VLAN Asset State
       cisco.ios.ios_vlans:
         config:
@@ -63,7 +66,16 @@
               allowed_vlans: "1,700-750"
       when: change_action == 'create'
 
-    #  ROUTER CORE ENGINE (IOS-XE)
+    - name: Dynamically Teardown VLAN Asset State
+      cisco.ios.ios_vlans:
+        config:
+          - vlan_id: "{{ target_vlan_id }}"
+        state: deleted
+      when: change_action == 'delete'  # <-- SAFEGUARD: Only fires if the ticket specifically demands asset destruction
+
+    # =========================================================================
+    # 2. ROUTER CORE ENGINE (IOS-XE)
+    # =========================================================================
     - name: Configure Corporate Static Routes for Transit Redundancy
       cisco.ios.ios_static_routes:
         config:
@@ -111,7 +123,9 @@
               description: "1LINK Primary Core Transit Peer"
         state: merged
 
-    # COMPLIANCE & HARDENING
+    # =========================================================================
+    # 3. COMPLIANCE & HARDENING
+    # =========================================================================
     - name: Enforce Infrastructure Baseline Profiles
       cisco.ios.ios_config:
         lines:
@@ -120,7 +134,8 @@
           - logging host 10.0.0.254
           - aaa new-model
 
-    # MULTI-VENDOR FIREWALL ANCHOR HOOKS 
+    # =========================================================================
+    # 4. MULTI-VENDOR FIREWALL ANCHOR HOOKS (Commented Placeholders)
     # =========================================================================
     # - name: Fortinet Core Policies Layer
     #   fortinet.fortios.fortios_configuration_fact:
