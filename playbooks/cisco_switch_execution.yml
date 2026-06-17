@@ -67,7 +67,7 @@
         config:
           - vlan_id: "{{ target_vlan_id }}"
         state: deleted
-      when: change_action == 'delete'  # <-- SAFEGUARD: Only fires if the ticket specifically demands asset destruction
+      when: change_action == 'delete'  
 
     #  ROUTER CORE ENGINE (IOS-XE)
     - name: Configure Corporate Static Routes for Transit Redundancy
