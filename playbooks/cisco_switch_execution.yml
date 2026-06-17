@@ -7,7 +7,7 @@
     ansible_network_os: cisco.ios.ios
     ansible_network_cli_ssh_type: paramiko
     
-    # PARAMIKO SSH TUNING & SYSTEM CIPHER ALIGNMENT
+    # SSH TUNING & SYSTEM CIPHER ALIGNMENT
     ansible_paramiko_look_for_keys: false
     ansible_paramiko_pty: false
     ansible_ssh_common_args: >-
@@ -23,9 +23,7 @@
     ansible_connect_timeout: 180
 
   tasks:
-    # =========================================================================
     # DYNAMIC INTERFACE MANAGEMENT LAYER (Runs across all pipeline changes)
-    # =========================================================================
     - name: Parse Target Interface Configuration Parameters
       vars:
         discovered_interface: "{{ ticket_item.value.fields.description | regex_search('(gi|gigabitethernet|fastethernet|fa|te|tenethernet)[0-9/]+' | lower) }}"
@@ -41,9 +39,7 @@
             description: "Managed by 1LINK Pipeline - iTop Ticket #{{ ticket_item.value.fields.id }}"
         state: merged
 
-    # =========================================================================
-    # 1. SWITCH AUTOMATION LAYER (VLAN Creation / Deletion / Mapping)
-    # =========================================================================
+    # SWITCH AUTOMATION LAYER (VLAN Creation / Deletion / Mapping)
     - name: Dynamically Provision VLAN Asset State
       cisco.ios.ios_vlans:
         config:
@@ -73,9 +69,7 @@
         state: deleted
       when: change_action == 'delete'  # <-- SAFEGUARD: Only fires if the ticket specifically demands asset destruction
 
-    # =========================================================================
-    # 2. ROUTER CORE ENGINE (IOS-XE)
-    # =========================================================================
+    #  ROUTER CORE ENGINE (IOS-XE)
     - name: Configure Corporate Static Routes for Transit Redundancy
       cisco.ios.ios_static_routes:
         config:
@@ -123,9 +117,8 @@
               description: "1LINK Primary Core Transit Peer"
         state: merged
 
-    # =========================================================================
-    # 3. COMPLIANCE & HARDENING
-    # =========================================================================
+  
+    #  COMPLIANCE & HARDENING
     - name: Enforce Infrastructure Baseline Profiles
       cisco.ios.ios_config:
         lines:
@@ -135,7 +128,7 @@
           - aaa new-model
 
     # =========================================================================
-    # 4. MULTI-VENDOR FIREWALL ANCHOR HOOKS (Commented Placeholders)
+    # MULTI-VENDOR FIREWALL ANCHOR HOOKS (Commented Placeholders)
     # =========================================================================
     # - name: Fortinet Core Policies Layer
     #   fortinet.fortios.fortios_configuration_fact:
